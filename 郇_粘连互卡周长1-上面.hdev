@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>Defect (Image, IsOK)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOK" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* 设置文件夹路径</c>
+<l>FolderPath := 'H:/NR数据集/采图（cdd1-cdd6）已筛选/cdd1筛选/合格品' </l>
+<c></c>
+<c>* 获取文件夹中的所有图像文件</c>
+<l>list_files(FolderPath, ['files'], Files)</l>
+<l>tuple_length(Files, Length)</l>
+<c></c>
+<c>* 遍历每一张图像</c>
+<l>for I := 0 to Length - 1 by 1</l>
+<c></c>
+<c>    * 获取当前图像路径</c>
+<l>    tuple_select(Files, I, ImagePath)   </l>
+<c></c>
+<c>    * 读取图像</c>
+<l>    read_image(Image, ImagePath)</l>
+<c>    * 获取图像尺寸</c>
+<l>    get_image_size(Image, Width, Height)</l>
+<c>* 转换为灰度图像</c>
+<l>rgb1_to_gray(Image, GrayImage)</l>
+<c></c>
+<c>* 分解RGB通道</c>
+<l>decompose3(Image, R, G, B)</l>
+<c>*选择深度值</c>
+<l>threshold(G, RegionThreshold,0,200)</l>
+<c>*填充</c>
+<l>fill_up(RegionThreshold, RegionFilled)</l>
+<l>connection(RegionFilled, ConnectedRegions)</l>
+<l>select_shape(ConnectedRegions, SelectedRegions, 'area', 'and', 500, 99999999)</l>
+<c>* 生成轮廓</c>
+<l>gen_contour_region_xld(SelectedRegions, RegionContour, 'border')</l>
+<c></c>
+<c>* 计算周长，Perimeter是输出变量</c>
+<l>length_xld(RegionContour, Perimeter)</l>
+<c>* 计算差值</c>
+<l>Diff := abs(Perimeter - 2700)</l>
+<c></c>
+<c>* 判定缺陷</c>
+<l>if (Diff &lt; 350)</l>
+<l>    IsOK := 0</l>
+<l>else</l>
+<l>    IsOK := 1</l>
+<l>endif</l>
+<l>stop()</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOK"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

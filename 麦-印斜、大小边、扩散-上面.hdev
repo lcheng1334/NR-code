@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>Defect (Image, IsOk)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>FolderPath := 'Y:/Detect_datasets/NR数据集/采图（cdd1-cdd6）已筛选/cdd1筛选/合格品' </l>
+<c>* 列出指定文件夹中的所有文件，['files']表示仅获取文件（不含子文件夹），结果存入Files数组</c>
+<l>list_files (FolderPath, ['files'], Files)</l>
+<c></c>
+<c>* 计算Files数组的长度，即获取文件夹中图像的总数量，结果存入Length变量</c>
+<l>tuple_length (Files, Length)</l>
+<c></c>
+<l>ContourareaList:=[]</l>
+<c></c>
+<c>* 循环处理文件夹中的每张图像（从第0张到最后一张）</c>
+<l>for I := 0 to Length-1 by 1</l>
+<c>    </c>
+<c>* 从Files数组中选择第I个文件的路径，存入ImagePath变量</c>
+<l>tuple_select (Files, I, ImagePath)   </l>
+<c></c>
+<c>*提取ROI区域</c>
+<l>read_image (Image, ImagePath)</l>
+<l>decompose3 (Image, R, G, B)</l>
+<l>rgb1_to_gray(Image, GrayImage)</l>
+<l>smooth_image(R, SmoothedImage, 'gauss', 3)</l>
+<l>threshold (SmoothedImage, Region, 20, 40)</l>
+<l>closing_circle (Region, RegionClosing, 10)</l>
+<l>connection (RegionClosing, ConnectedRegions)</l>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<l>select_shape (ConnectedRegions, TargetRegions, 'area', 'and', 130000, 999999)</l>
+<l>reduce_domain (B, TargetRegions, ImageReduced)</l>
+<c></c>
+<l>tuple_max (Area, MaxArea)</l>
+<c></c>
+<l>tuple_concat(ContourareaList, MaxArea, ContourareaList)</l>
+<c></c>
+<c></c>
+<c></c>
+<c>* 在红色通道图像R上，将缺陷区域填充为255（红色），结果存入R_painted</c>
+<l>paint_region(ImageReduced , R, R_painted, 255, 'fill')  </l>
+<c></c>
+<c>* 在绿色通道图像G上，将缺陷区域填充为0（黑色），结果存入G_painted</c>
+<l>paint_region(ImageReduced, G, G_painted, 0, 'fill')    </l>
+<c></c>
+<c>* 在蓝色通道图像B上，将缺陷区域填充为0（黑色），结果存入B_painted</c>
+<l>paint_region(ImageReduced, B, B_painted, 0, 'fill')    </l>
+<c></c>
+<c>* 将处理后的红、绿、蓝三通道图像重新合成RGB图像，存入ImagePainted（缺陷区域显示为红色）</c>
+<l>compose3(R_painted, G_painted, B_painted, ImagePainted)</l>
+<c></c>
+<c>* 显示合成后的图像，直观展示缺陷标记效果</c>
+<l>dev_display(ImagePainted)</l>
+<c></c>
+<c>* 初始化判断变量IsOk为0（默认合格）</c>
+<l>IsOk := 0</l>
+<c></c>
+<c>* 如果最终缺陷区域的面积大于0（即存在缺陷），则将IsOk设为1（判定为不合格）</c>
+<l>if (abs(MaxArea-135000)&gt;10000)</l>
+<l>    IsOk := 1</l>
+<l>endif</l>
+<c></c>
+<c>* 显示原始图像</c>
+<l>dev_display(Image)</l>
+<c></c>
+<c>* 显示筛选后的缺陷区域（满足面积条件）：设置显示颜色为红色，然后显示DefectRegion</c>
+<l>dev_set_color('red')</l>
+<l>dev_display(TargetRegions)</l>
+<c></c>
+<c></c>
+<l>stop()</l>
+<c>* 暂停1秒，便于观察当前图像的处理结果</c>
+<l>wait_seconds(1)</l>
+<c></c>
+<c>* 结束循环</c>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

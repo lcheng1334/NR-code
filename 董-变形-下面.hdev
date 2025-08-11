@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>Defect (Image, IsOk)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* 设置图像路径并读取图像</c>
+<l>ImagePath := 'D:/桌面/NR/次品/尺寸不合格（变形，混料，卡异物）/2025_05_30_11_18_00_180_78.bmp'</l>
+<c></c>
+<l>*ImagePath := 'D:/桌面/NR/合格品/2025_05_30_11_13_07_137_18.bmp'</l>
+<c></c>
+<l>read_image (Image, ImagePath)</l>
+<c></c>
+<c>* 将图像转为灰度图</c>
+<l>rgb1_to_gray(Image, GrayImage)</l>
+<c></c>
+<c>* 使用高斯滤波对图像进行平滑，降低噪声</c>
+<l>smooth_image(GrayImage, Smooth, 'gauss', 6)</l>
+<c></c>
+<c>* 进行阈值分割，提取前景区域</c>
+<l>threshold(Smooth, Region, 90, 120)</l>
+<c></c>
+<c>* 填充区域中的空洞</c>
+<l>fill_up(Region, RegionFill)</l>
+<c></c>
+<c>* 获取前景区域的主方向角 Phi（用于后续旋转对齐）</c>
+<l>orientation_region(RegionFill, Phi)</l>
+<c></c>
+<c>* 获取最小外接旋转矩形的中心点（Row, Column）、角度（Phi）、长短轴</c>
+<l>smallest_rectangle2(RegionFill, Row, Column, Phi, Length1, Length2)</l>
+<c></c>
+<c></c>
+<l>area_center(RegionFill, Areas_final, Rows, Cols)</l>
+<c></c>
+<l>if (Areas_final &gt; 360000)</l>
+<l>    IsOk := 0</l>
+<l>endif</l>
+<l>     IsOk := 1</l>
+<c></c>
+<c></c>
+<c>*382401</c>
+<c>*356943</c>
+<l>return ()</l>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

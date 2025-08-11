@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>Defect (Image, IsOK)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOK" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>* 设置文件夹路径</c>
+<l>FolderPath := 'H:/NR数据集/采图（cdd1-cdd6）已筛选/cdd1筛选/合格品' </l>
+<c></c>
+<c>* 获取文件夹中的所有图像文件</c>
+<l>list_files(FolderPath, ['files'], Files)</l>
+<l>tuple_length(Files, Length)</l>
+<c></c>
+<l>for I := 0 to Length - 1 by 1</l>
+<c>    * 默认无缺陷，Result=0</c>
+<l>    IsOK := 0</l>
+<c>    </c>
+<c>    * 读取当前图像路径</c>
+<l>    tuple_select(Files, I, ImagePath)</l>
+<l>    read_image(Image, ImagePath)</l>
+<c>    </c>
+<c>    * 转为灰度图像（也可直接用R通道）</c>
+<l>    rgb1_to_gray(Image, GrayImage)</l>
+<c>    </c>
+<c>    * 分解RGB通道</c>
+<l>    decompose3(Image, R, G, B)</l>
+<c>    </c>
+<c>    * 高斯滤波降噪</c>
+<l>    gauss_image(R, SmoothedImage, 5)</l>
+<c>    </c>
+<c>    * 一次筛选：选择镀银区域（深度阈值）</c>
+<l>    threshold(SmoothedImage, RegionThreshold1, 90, 180)</l>
+<c>    </c>
+<c>    * 连通区域</c>
+<l>    connection(RegionThreshold1, ConnectedRegions)</l>
+<c>    </c>
+<c>    * 闭运算连接碎片</c>
+<l>    closing_rectangle1(ConnectedRegions, ClosedRegions, 10, 10)</l>
+<c>    </c>
+<c>    * 再连通</c>
+<l>    connection(ClosedRegions, ConnectedRegions2)</l>
+<c>    </c>
+<c>    * 筛选大面积区域（去小碎点）</c>
+<l>    select_shape(ConnectedRegions2, LargeRegions, 'area', 'and', 100000, 9999999999)</l>
+<c>    </c>
+<c>    * 宽度筛选，去除细长条</c>
+<l>    select_shape(LargeRegions, SilverCandidate, 'width', 'and', 15, 99999)</l>
+<c>    </c>
+<c>    * 开运算去毛刺</c>
+<l>    opening_rectangle1(SilverCandidate, SilverCleaned, 5, 5)</l>
+<c>    </c>
+<c>    * 填充镀银区域，作为ROI</c>
+<l>    fill_up(SilverCleaned, SilverFilled)</l>
+<c>    </c>
+<c>    * ------------------- 二次筛选：缺陷检测 -------------------</c>
+<c>    * 将ROI限制为镀银区域</c>
+<l>    reduce_domain(GrayImage, SilverFilled, ROI_GrayImage)</l>
+<c>    </c>
+<c>    * 缺陷通常为暗区，假设阈值在较低灰度</c>
+<l>    threshold(ROI_GrayImage, DefectCandidates, 0, 40)</l>
+<c>    </c>
+<c>    * 连通</c>
+<l>    connection(DefectCandidates, DefectConnected)</l>
+<c>    </c>
+<c>    * 筛选缺陷区域（面积阈值，排除小点）</c>
+<l>    select_shape(DefectConnected, Defects, 'area', 'and', 50, 9999999)</l>
+<c>    </c>
+<c>    * 计算缺陷数量</c>
+<l>    count_obj(Defects, DefectCount)</l>
+<l>    if (DefectCount &gt; 0)</l>
+<l>    IsOK := 1</l>
+<l>    endif</l>
+<c></c>
+<c></c>
+<c></c>
+<c>    </c>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOK"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

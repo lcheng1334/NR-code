@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>Defect (Image, IsOK)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOK" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>*总体逻辑：因为背景是白色（255），与背景上方以及目标物是具有明显的对比度的，所以进行平滑处理再提阈值，</c>
+<c>*随后对得到的N个区域进行填充处理。目标物的面积是一定比上方背景大的（相差一万左右），所以用if语句判断</c>
+<c>*以当前文件夹不难观察出，一定会至少有两个的区域出现，所以当出现两个区域时，直接选取最大的；当出现多个区域时</c>
+<c>*应排除第二大的区域，将最大的以及剩下的轮廓长度加在一起即可判断有没有卡球或异物；当然，直接统计总面积筛选亦可，</c>
+<c>*但是，上方背景面积浮动较大</c>
+<c></c>
+<c>*如果换背景以及光源的话，该算法不一定适用</c>
+<c></c>
+<l>FolderPath := 'Y:/Detect_datasets/NR数据集/采图（cdd1-cdd6）已筛选/cdd2筛选/合格品' </l>
+<c></c>
+<c>* 列出指定文件夹中的所有文件，['files']表示仅获取文件（不含子文件夹），结果存入Files数组</c>
+<l>list_files (FolderPath, ['files'], Files)</l>
+<c></c>
+<c>* 计算Files数组的长度，即获取文件夹中图像的总数量，结果存入Length变量</c>
+<l>tuple_length (Files, Length)</l>
+<c></c>
+<c>* 初始化一个空列表，用于存储“引脚形变”图像中目标轮廓的总长度</c>
+<l>ContourLengthList := []</l>
+<c></c>
+<c>* 循环处理</c>
+<l>for I := 0 to Length - 1 by 1</l>
+<c></c>
+<c>    * 从Files数组中选择第I个文件的路径，存入ImagePath变量</c>
+<l>    tuple_select(Files, I, ImagePath)   </l>
+<c>    </c>
+<c>    * 根据ImagePath读取图像，存入Image变量</c>
+<l>    read_image(Image, ImagePath)</l>
+<c></c>
+<c>    * 将RGB图像转换为灰度图像，便于后续处理（转换公式：Gray = 0.299*R + 0.587*G + 0.114*B）</c>
+<l>    rgb1_to_gray(Image, GrayImage)</l>
+<c></c>
+<c>    * 对灰度图像进行高斯平滑处理，滤波核大小为9，减少图像噪声，结果存入SmoothedImage</c>
+<l>    smooth_image(GrayImage, SmoothedImage, 'gauss', 5)</l>
+<c></c>
+<l>    threshold (SmoothedImage, Region, 0, 120)</l>
+<c>   </c>
+<c>    *填充</c>
+<l>    fill_up (Region, RegionFillUp)</l>
+<c>    </c>
+<c>    </c>
+<c>    * 对填充后的区域进行圆形闭运算，半径为5，填充小空隙并连接断裂部分，结果存入RegionClosing</c>
+<l>    closing_circle (RegionFillUp, RegionClosing, 5)</l>
+<c></c>
+<c>    * 将闭运算后的区域分割为独立的连通域，存入ConnectedRegions</c>
+<l>    connection (RegionClosing, ConnectedRegions)</l>
+<c>    </c>
+<c>* 计算所有连通区域的面积和中心坐标</c>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<c></c>
+<c>* 获取区域数量（已知至少为2个）</c>
+<l>tuple_length (Area, AreaCount)</l>
+<c></c>
+<c>* 初始化目标区域变量</c>
+<l>gen_empty_region (TargetRegions2)</l>
+<c></c>
+<c>* 找到最大面积值并记录</c>
+<l>tuple_max (Area, MaxArea)</l>
+<c></c>
+<c>* 分情况处理</c>
+<l>if (AreaCount == 1)</l>
+<c>    * 两个区域时：直接选择最大面积的区域</c>
+<l>    tuple_find (Area, MaxArea, SelectedIndices)</l>
+<l>else</l>
+<c>    * 多个区域时：直接操作原始Area数组</c>
+<c>    </c>
+<c>    * 第一次移除最大面积（原始最大）</c>
+<l>    tuple_find (Area, MaxArea, MaxIdx)</l>
+<l>    tuple_remove (Area, MaxIdx, Area)</l>
+<c>    </c>
+<c>    * 找到当前最大面积（原始第二大）并移除</c>
+<l>    tuple_max (Area, SecondMaxArea)</l>
+<l>    tuple_find (Area, SecondMaxArea, SecondMaxIdx)</l>
+<l>    tuple_remove (Area, SecondMaxIdx, Area)</l>
+<c>    </c>
+<c>    * 将最初记录的最大面积加回数组</c>
+<l>    tuple_concat (Area, MaxArea, Area)</l>
+<c>    </c>
+<c>    * 找到所有需要保留的面积在原始面积数组（计算时的Area）中的索引</c>
+<c>    * 注意：此处需重新获取原始面积数组（使用area_center重新计算）</c>
+<c>    * 重新获取原始面积数组</c>
+<l>    area_center (ConnectedRegions, OriginalArea, _, _)  </l>
+<l>    SelectedIndices := []</l>
+<l>    for K := 0 to |Area| - 1 by 1</l>
+<l>        tuple_select (Area, K, Val)</l>
+<l>        tuple_find (OriginalArea, Val, Idx)</l>
+<l>        tuple_concat (SelectedIndices, Idx, SelectedIndices)</l>
+<l>    endfor</l>
+<c>    </c>
+<c>    * 去重处理（避免重复索引）</c>
+<l>*     tuple_unique (SelectedIndices, SelectedIndices)</l>
+<l>endif</l>
+<c></c>
+<c>* 提取并合并选中的区域</c>
+<l>if (|SelectedIndices| &gt; 0)</l>
+<l>    for M := 0 to |SelectedIndices| - 1 by 1</l>
+<l>        tuple_select (SelectedIndices, M, Index)</l>
+<c>        * 索引+1（Halcon区域从1开始）</c>
+<l>        select_obj (ConnectedRegions, ObjectSingle, Index + 1)  </l>
+<l>        union2 (TargetRegions2, ObjectSingle, TargetRegions2)</l>
+<l>    endfor</l>
+<l>endif</l>
+<c></c>
+<c>* 限定ROI</c>
+<l>reduce_domain (Image, TargetRegions2, ImageROI2)</l>
+<c></c>
+<c></c>
+<c></c>
+<c>    * 将原始图像的处理范围缩小到TargetRegions2区域内，得到感兴趣区域（ROI）图像，存入ImageROI2</c>
+<l>    reduce_domain(Image, TargetRegions2, ImageROI2)</l>
+<c></c>
+<c>    * 获取平滑边界轮廓：从TargetRegions2区域生成亚像素级轮廓（XLD），'border_holes'表示包含区域边界和内部孔洞边界</c>
+<l>    gen_contour_region_xld(TargetRegions2, Normal_contour, 'border_holes')</l>
+<c></c>
+<c>    * 对轮廓进行平滑处理，参数5控制平滑程度，去除毛刺，结果存入SmoothedNormal</c>
+<l>    smooth_contours_xld(Normal_contour, SmoothedNormal, 5)  </l>
+<c></c>
+<c>    * 将平滑后的轮廓赋值给Normal_contour变量（更新为平滑后的结果）</c>
+<l>    Normal_contour := SmoothedNormal</l>
+<c></c>
+<c>    * 显示图像和轮廓：在显示窗口中显示原始图像</c>
+<l>    dev_display(Image)</l>
+<c></c>
+<c>    * 在原始图像上叠加显示平滑后的轮廓</c>
+<l>    dev_display(Normal_contour)</l>
+<c></c>
+<c>    * 获取轮廓长度并保存：计算轮廓的长度（每个轮廓段的长度），结果存入Length（覆盖之前的变量）</c>
+<l>    length_xld(Normal_contour, Length)</l>
+<c></c>
+<c>    * 对所有轮廓段的长度求和，得到当前图像中目标的总轮廓长度，存入TotalLength</c>
+<l>    tuple_sum(Length, TotalLength)</l>
+<c></c>
+<c>    * 将当前图像的总轮廓长度添加到ContourLengthList列表中</c>
+<l>    tuple_concat(ContourLengthList, TotalLength, ContourLengthList)</l>
+<c>    </c>
+<c>    </c>
+<c>        * 初始化判断变量IsOK为0（默认合格）</c>
+<l>    IsOK := 0</l>
+<c></c>
+<c>    * 设定参考长度值为2350</c>
+<l>    LengthRef := 2400</l>
+<c></c>
+<c>    * 计算当前总轮廓长度与参考长度的差值（因判断是否超过，无需取绝对值）</c>
+<l>    length_diff := TotalLength - LengthRef</l>
+<c></c>
+<c>    * 如果总轮廓长度超过参考长度，则判定为不合格</c>
+<l>    if (length_diff &gt; 0)</l>
+<l>        IsOK := 1</l>
+<l>    endif</l>
+<c>    </c>
+<c>    </c>
+<c>    </c>
+<c>    </c>
+<c>    </c>
+<c>    </c>
+<c>    </c>
+<c></c>
+<c>    * 暂停0.1秒，便于观察每张图像的处理效果</c>
+<l>    wait_seconds(0.1)</l>
+<c></c>
+<c></c>
+<l>endfor</l>
+<c></c>
+<c></c>
+<l>dev_inspect_ctrl(ContourLengthList)</l>
+<l>return ()</l>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOK"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

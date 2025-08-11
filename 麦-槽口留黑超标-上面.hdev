@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>Defect (Image, IsOk)</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>*总体逻辑：统计银片面积，少于某值就是有缺陷</c>
+<c>*只能检测横放的电感，竖着放的不行，其实重新提阈值，竖着放的也行，但是该缺陷明显需要</c>
+<c>*实际的照片来写，第一版暂定等实物</c>
+<c></c>
+<l>FolderPath := 'Y:/Detect_datasets/NR数据集/采图（cdd1-cdd6）已筛选/cdd1筛选/合格品' </l>
+<c>* 列出指定文件夹中的所有文件，['files']表示仅获取文件（不含子文件夹），结果存入Files数组</c>
+<l>list_files (FolderPath, ['files'], Files)</l>
+<c></c>
+<c>* 计算Files数组的长度，即获取文件夹中图像的总数量，结果存入Length变量</c>
+<l>tuple_length (Files, Length)</l>
+<c></c>
+<l>ContourareaList:=[]</l>
+<c></c>
+<c>* 循环处理文件夹中的每张图像（从第0张到最后一张）</c>
+<l>for I := 0 to Length-1 by 1</l>
+<c>    </c>
+<c>* 从Files数组中选择第I个文件的路径，存入ImagePath变量</c>
+<l>tuple_select (Files, I, ImagePath)   </l>
+<c></c>
+<c>* 根据ImagePath读取图像，存入Image变量</c>
+<l>read_image (Image, ImagePath)</l>
+<c></c>
+<l>decompose3 (Image, R, G, B)</l>
+<c></c>
+<c>* 将RGB图像转换为灰度图像，便于后续处理（转换公式：Gray = 0.299*R + 0.587*G + 0.114*B）</c>
+<l>rgb1_to_gray(Image, GrayImage)</l>
+<c></c>
+<c>* 对红色通道图像R进行高斯平滑处理，滤波核大小为10，大幅减少噪声，结果存入SmoothedImage</c>
+<l>smooth_image(R, SmoothedImage, 'gauss', 3)</l>
+<c></c>
+<l>threshold (SmoothedImage, Region, 70, 180)</l>
+<c></c>
+<l>closing_circle (Region, RegionClosing, 10)</l>
+<c></c>
+<c>* 将闭运算后的区域分割为独立的连通域，存入ConnectedRegions</c>
+<l>connection (RegionClosing, ConnectedRegions)</l>
+<c></c>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<c></c>
+<l>select_shape (ConnectedRegions, TargetRegions, 'area', 'and', 170000, 999999)</l>
+<c></c>
+<c>* ... 前面的代码保持不变 ...</c>
+<c></c>
+<c></c>
+<c></c>
+<c>* === 添加区域缩进处理 ===</c>
+<c>* 获取区域最小外接矩形</c>
+<l>smallest_rectangle1(TargetRegions, Row1, Column1, Row2, Column2)</l>
+<c></c>
+<c>* 计算左右缩进量（取区域宽度的5%）</c>
+<l>Width := Column2 - Column1</l>
+<l>ShrinkPixels := round(Width * 0.05)</l>
+<c></c>
+<c>* 创建新的缩进区域</c>
+<l>NewColumn1 := Column1 + ShrinkPixels</l>
+<l>NewColumn2 := Column2 - ShrinkPixels</l>
+<l>gen_rectangle1(ShrinkedRegion, Row1, NewColumn1, Row2, NewColumn2)</l>
+<c></c>
+<c>* 与原区域求交集（确保形状不变）</c>
+<l>intersection(TargetRegions, ShrinkedRegion, Region1)</l>
+<c></c>
+<c>*再筛选</c>
+<l>connection (Region1, ConnectedRegions1)</l>
+<c></c>
+<l>area_center (ConnectedRegions1, Area1, Row, Column)</l>
+<c></c>
+<l>fill_up (ConnectedRegions1, RegionFillUp)</l>
+<c></c>
+<l>select_shape (RegionFillUp, TargetRegions1, 'area', 'and', 80000, 999999)</l>
+<c></c>
+<l>tuple_sum(Area1, TotalSum)</l>
+<c></c>
+<l>tuple_concat(ContourareaList, TotalSum, ContourareaList)</l>
+<c></c>
+<c>* 在红色通道图像R上，将缺陷区域填充为255（红色），结果存入R_painted</c>
+<l>paint_region(TargetRegions1 , R, R_painted, 255, 'fill')  </l>
+<c></c>
+<c>* 在绿色通道图像G上，将缺陷区域填充为0（黑色），结果存入G_painted</c>
+<l>paint_region(TargetRegions1, G, G_painted, 0, 'fill')    </l>
+<c></c>
+<c>* 在蓝色通道图像B上，将缺陷区域填充为0（黑色），结果存入B_painted</c>
+<l>paint_region(TargetRegions1, B, B_painted, 0, 'fill')    </l>
+<c></c>
+<c>* 将处理后的红、绿、蓝三通道图像重新合成RGB图像，存入ImagePainted（缺陷区域显示为红色）</c>
+<l>compose3(R_painted, G_painted, B_painted, ImagePainted)</l>
+<c></c>
+<c></c>
+<c>* 显示合成后的图像，直观展示缺陷标记效果</c>
+<l>dev_display(ImagePainted)</l>
+<c></c>
+<c>* 初始化判断变量IsOk为0（默认合格）</c>
+<l>IsOk := 0</l>
+<c></c>
+<c>* IsOk设为1（判定为不合格）</c>
+<l>if (abs(TotalSum -170000)&gt;10000)</l>
+<l>    IsOk := 1</l>
+<l>endif</l>
+<c></c>
+<c>* 显示原始图像</c>
+<l>dev_display(Image)</l>
+<l>wait_seconds(1)</l>
+<c></c>
+<c>* 显示筛选后的缺陷区域（满足面积条件）：设置显示颜色为红色，然后显示DefectRegion</c>
+<l>dev_set_color('red')</l>
+<l>dev_display(ImagePainted)</l>
+<c></c>
+<c></c>
+<c>* 暂停1秒，便于观察当前图像的处理结果</c>
+<l>wait_seconds(1)</l>
+<c></c>
+<c>* 结束循环</c>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>
