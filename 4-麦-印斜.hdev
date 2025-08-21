@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>ImagePath := 'E:/Detect_datasets/NR数据集/CM_New_3015-3 D043/Cam1/不良_正面暗缺陷(NG1)_17590609.bmp'</l>
+<c></c>
+<c>*提取ROI区域</c>
+<l>read_image (Image, ImagePath)</l>
+<c></c>
+<l>rgb1_to_gray(Image, GrayImage)</l>
+<c></c>
+<l>smooth_image (GrayImage, ImageSmooth, 'gauss', 3)</l>
+<c></c>
+<l>threshold (GrayImage, Region, 0, 80)</l>
+<c></c>
+<l>fill_up (Region, RegionFillUp)</l>
+<c></c>
+<l>connection (RegionFillUp, ConnectedRegions)</l>
+<c></c>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<c></c>
+<l>select_shape (ConnectedRegions, TargetRegions, 'area', 'and', 100000, 999999)</l>
+<c>* 显示原始图像</c>
+<l>dev_display(Image)</l>
+<l>dev_display(TargetRegions)</l>
+<c></c>
+<c></c>
+<c>* 初始化判断变量IsOk为1（默认合格）</c>
+<l>IsOk := 1</l>
+<c></c>
+<c>* 如果最终缺陷区域的面积大于0（即存在缺陷），则将IsOk设为1（判定为不合格）</c>
+<l>if (abs(Area-135000)&gt;10000)</l>
+<l>    IsOk := 0</l>
+<l>endif</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

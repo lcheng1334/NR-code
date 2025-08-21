@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* 设置文件夹路径</c>
+<l>FolderPath := 'C:/Users/huanxiangpeng/Desktop/CM_New_3015-3D043/Cam4' </l>
+<c></c>
+<c>* 获取文件夹中的所有图像文件</c>
+<l>list_files(FolderPath, ['files'], Files)</l>
+<l>tuple_length(Files, Length)</l>
+<c></c>
+<c>* 遍历每一张图像</c>
+<l>for I := 0 to Length - 1 by 1</l>
+<c></c>
+<c>    * 获取当前图像路径</c>
+<l>    tuple_select(Files, I, ImagePath)   </l>
+<c></c>
+<c>    * 读取图像</c>
+<l>    read_image(Image, ImagePath)</l>
+<c>    * 获取图像尺寸</c>
+<l>    get_image_size(Image, Width, Height)</l>
+<c></c>
+<c></c>
+<c>* 转换为灰度图像</c>
+<l>rgb1_to_gray(Image, GrayImage)</l>
+<c></c>
+<c>* 分解RGB通道</c>
+<l>decompose3(Image, R, G, B)</l>
+<c></c>
+<c>* 高斯滤波去噪</c>
+<l>gauss_image(R, SmoothedImage,3)</l>
+<c></c>
+<c>* 选择深度值区域</c>
+<l>threshold(SmoothedImage, RegionThreshold1,110, 255)</l>
+<c></c>
+<c>* 连通区域分析</c>
+<l>connection(RegionThreshold1, ConnectedRegions)</l>
+<c></c>
+<c>* 闭运算连接相邻镀银碎片</c>
+<l>closing_rectangle1(ConnectedRegions, ClosedRegions, 10, 10)</l>
+<c></c>
+<c>* 再次连通</c>
+<l>connection(ClosedRegions, ConnectedRegions2)</l>
+<c></c>
+<c>* 筛选面积较大的区域（去除小碎点）</c>
+<l>select_shape(ConnectedRegions2, LargeRegions, 'area', 'and',1000, 9999999999)</l>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<c>* ------------------- 填充选中的镀银区域 -------------------</c>
+<l>fill_up(LargeRegions, SilverFilled)</l>
+<c></c>
+<c></c>
+<c></c>
+<c>* 获取区域个数</c>
+<l>count_obj(SilverFilled, RegionCount)</l>
+<c></c>
+<c>* 只保留面积最大的前2个区域</c>
+<c></c>
+<l>    select_obj(SilverFilled, Region1, 1)</l>
+<c></c>
+<c>* 填充</c>
+<l>fill_up(Region1, SilverFinal)</l>
+<c>* 计算填充区域的面积</c>
+<l>area_center(SilverFinal, Area, RowCenter, ColCenter)</l>
+<c>* 标准面积</c>
+<l>Area_Std := 100</l>
+<c></c>
+<c></c>
+<c></c>
+<c>* 计算面积差值</c>
+<l>Diff := abs(Area - Area_Std)</l>
+<c></c>
+<c>* 判定缺陷</c>
+<l>if (Diff &lt; 1000)</l>
+<l>    IsOK := 0</l>
+<l>else</l>
+<l>    IsOK := 1</l>
+<l>endif</l>
+<l>   stop()</l>
+<l>endfor</l>
+<l>return ()</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>

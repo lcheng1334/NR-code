@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>ImagePath := 'E:/Detect_datasets/NR数据集/CM_New_3015-3 D043/Cam1/不良_正面亮缺陷(NG1)_173312870.bmp'</l>
+<c></c>
+<l>read_image(Image, ImagePath)</l>
+<c></c>
+<c>* 分解RGB通道</c>
+<l>decompose3(Image, R, G, B)</l>
+<c></c>
+<c>* 一次筛选：选择镀银区域（深度阈值）</c>
+<l>threshold(G, RegionThreshold1, 0, 70)</l>
+<c></c>
+<l>fill_up (RegionThreshold1, RegionFillUp)</l>
+<c></c>
+<l>connection (RegionFillUp, ConnectedRegions)</l>
+<c></c>
+<l>area_center (ConnectedRegions, Area1, Row1, Column1)</l>
+<l>select_shape (ConnectedRegions, SelectedRegions1, 'area', 'and', 20000, 9999999)</l>
+<c></c>
+<l>area_center (SelectedRegions1, Area2, Row2, Column2)</l>
+<c></c>
+<l>IsOK := 1</l>
+<c></c>
+<l>if (Area2 &lt; 150000)</l>
+<l>    IsOK := 0</l>
+<l>endif</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOK" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOK"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

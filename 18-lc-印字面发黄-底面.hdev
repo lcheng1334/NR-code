@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>ImagePath := 'E:/Detect_datasets/NR数据集/CM_New_3015-3 D043/Cam2/不良_暗缺陷(NG2)_18056400.bmp'</l>
+<c></c>
+<l>read_image (Image, ImagePath)</l>
+<c></c>
+<c>* 转换为灰度图像 - 如果原图是彩色图像，需要转换为灰度以便后续处理</c>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<c></c>
+<l>threshold (GrayImage, Region, 0, 100)</l>
+<c></c>
+<l>erosion_circle (Region, RegionErosion, 55)</l>
+<c></c>
+<l>connection (RegionErosion, ConnectedRegions)</l>
+<c></c>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<c></c>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 200000, 999999)</l>
+<c></c>
+<l>reduce_domain (Image, SelectedRegions, ImageReduced)</l>
+<c></c>
+<l>decompose3 (ImageReduced, R, G, B)</l>
+<c></c>
+<l>threshold (B, Region11, 0, 100)</l>
+<c></c>
+<l>area_center (Region11, Area2, Row2, Column2)</l>
+<c></c>
+<c></c>
+<l>IsOk := 1</l>
+<c></c>
+<l>if (Area2 &gt; 500)</l>
+<l>    IsOk := 0</l>
+<c></c>
+<l>endif</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="zangwu">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="zangwu">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

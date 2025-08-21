@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>ImagePath1 := 'E:/Detect_datasets/NR数据集/CM_New_3015-3 D043/Cam5/不良_正面亮缺陷(NG1)_175932387.bmp'</l>
+<c></c>
+<c>* 读取图像</c>
+<l>read_image(Image1, ImagePath1)</l>
+<c></c>
+<c>* 获取图像尺寸</c>
+<l>get_image_size (Image1, Width, Height)</l>
+<c></c>
+<c>* 转换为灰度图像</c>
+<l>* rgb1_to_gray(Image1, GrayImage1)</l>
+<c></c>
+<c>* 分解RGB通道</c>
+<l>decompose3(Image1, R, G, B)</l>
+<c></c>
+<l>threshold(B, RegionThreshold,0,100)</l>
+<c></c>
+<l>* fill_up(RegionThreshold, SilverFilled)</l>
+<c></c>
+<l>closing_circle (RegionThreshold, RegionFill, 3.5)</l>
+<c></c>
+<c>********************  ROI</c>
+<c></c>
+<c>* 获取区域的主方向角 Phi（用于旋转对齐）</c>
+<l>orientation_region(RegionFill, Phi)</l>
+<c></c>
+<c>* 获取最小外接旋转矩形的中心位置、角度和尺寸</c>
+<l>smallest_rectangle2(RegionFill, Row, Column, Phi, Length1, Length2)</l>
+<c></c>
+<c>* 创建仿射变换矩阵，将区域旋转为水平（角度设置为 0）</c>
+<l>vector_angle_to_rigid(Row, Column, Phi, Row, Column, 0, HomMat2D)</l>
+<c></c>
+<c>* 对图像应用仿射变换（进行旋转对齐）</c>
+<l>affine_trans_image(Image1, RotatedImage, HomMat2D, 'constant', 'false')</l>
+<c></c>
+<c>* 对填充区域也应用相同的仿射变换</c>
+<l>affine_trans_region(RegionFill, RotatedRegion, HomMat2D, 'nearest_neighbor')</l>
+<c></c>
+<c>* 设置上下左右方向的像素缩进（单位：像素）</c>
+<l>shrink_top := -10</l>
+<l>shrink_bottom := 70</l>
+<l>shrink_left := 0</l>
+<l>shrink_right := 0</l>
+<c></c>
+<c>* 获取旋转后区域的外接矩形边界框坐标（R1,C1 到 R2,C2）</c>
+<l>smallest_rectangle1(RotatedRegion, R1, C1, R2, C2)</l>
+<c></c>
+<c>* 计算缩进后的矩形边界坐标</c>
+<l>NewR1 := R1 + shrink_top</l>
+<l>NewR2 := R2 - shrink_bottom</l>
+<l>NewC1 := C1 + shrink_left</l>
+<l>NewC2 := C2 - shrink_right</l>
+<c></c>
+<c>* 生成缩小后的矩形 ROI 区域（在旋转坐标系中）</c>
+<l>gen_rectangle1(ShrinkedRect, NewR1, NewC1, NewR2, NewC2)</l>
+<c></c>
+<c>* 计算仿射变换的逆矩阵（用于回到原图空间）</c>
+<l>hom_mat2d_invert(HomMat2D, HomMatInv)</l>
+<c></c>
+<c>* 将缩小后的 ROI 区域映射回原图坐标系中</c>
+<l>affine_trans_region(ShrinkedRect, FinalROI, HomMatInv, 'nearest_neighbor')</l>
+<c></c>
+<l>reduce_domain (RotatedImage, FinalROI, ImageReduced)</l>
+<c></c>
+<l>decompose3 (ImageReduced, R_roi, G_roi, B_roi)</l>
+<c></c>
+<c></c>
+<l>dev_display (Image1)</l>
+<l>dev_display (R_roi)</l>
+<c></c>
+<c></c>
+<c>********************  ROI</c>
+<c></c>
+<l>threshold (R_roi, Region, 120, 180)</l>
+<l>closing_circle (Region, RegionFill, 3.5)</l>
+<c></c>
+<l>area_center (RegionFill, Area1, Row1, Column1)</l>
+<c></c>
+<l>area_center (RegionFill, Area2, Row, Column)</l>
+<c></c>
+<c></c>
+<l>IsOK := 1   </l>
+<c></c>
+<l>if (Area2 &gt; 5000)</l>
+<l>    IsOK := 0   </l>
+<l>endif</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOK" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOK"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

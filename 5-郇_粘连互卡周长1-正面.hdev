@@ -3,8 +3,37 @@
 <procedure name="main">
 <interface/>
 <body>
-<l>Defect (Image, IsOK)</l>
+<l>ImagePath := 'E:/Detect_datasets/NR数据集/CM_New_3015-3 D043/Cam1/不良_正面暗缺陷(NG1)_17590609.bmp'</l>
 <c></c>
+<c>* 读取图像</c>
+<l>read_image(Image, ImagePath)</l>
+<c>* 获取图像尺寸</c>
+<l>get_image_size(Image, Width, Height)</l>
+<c>* 转换为灰度图像</c>
+<l>rgb1_to_gray(Image, GrayImage)</l>
+<c></c>
+<c>* 分解RGB通道</c>
+<l>decompose3(Image, R, G, B)</l>
+<c>*选择深度值</c>
+<l>threshold(G, RegionThreshold,0,200)</l>
+<c>*填充</c>
+<l>fill_up(RegionThreshold, RegionFilled)</l>
+<l>connection(RegionFilled, ConnectedRegions)</l>
+<l>select_shape(ConnectedRegions, SelectedRegions, 'area', 'and', 500, 99999999)</l>
+<c>* 生成轮廓</c>
+<l>gen_contour_region_xld(SelectedRegions, RegionContour, 'border')</l>
+<c></c>
+<c>* 计算周长，Perimeter是输出变量</c>
+<l>length_xld(RegionContour, Perimeter)</l>
+<c>* 计算差值</c>
+<l>* Diff := abs(Perimeter - 2700)</l>
+<c></c>
+<l>IsOK := 1</l>
+<c></c>
+<c>* 判定缺陷</c>
+<l>if (Perimeter &gt; 4000)</l>
+<l>    IsOK := 0</l>
+<l>endif</l>
 </body>
 <docu id="main">
 <parameters/>
@@ -20,42 +49,7 @@
 </oc>
 </interface>
 <body>
-<c>* 读取图像（路径需设置）</c>
-<l>ImagePath := 'H:/NR数据集/采图（cdd1-cdd6）已筛选/cdd2筛选/合格品/2025_05_30_15_00_03_03_72.bmp'</l>
-<l>read_image (Image, ImagePath)</l>
 <c></c>
-<c>* 获取图像尺寸</c>
-<l>get_image_size (Image, Width, Height)</l>
-<c></c>
-<c>* 转换为灰度图像</c>
-<l>rgb1_to_gray(Image, GrayImage)</l>
-<c></c>
-<c>* 分解RGB通道</c>
-<l>decompose3(Image, R, G, B)</l>
-<c>*选择深度值</c>
-<l>threshold(R, RegionThreshold,0,125)</l>
-<c>*填充</c>
-<l>fill_up(RegionThreshold, RegionFilled)</l>
-<l>connection(RegionFilled, ConnectedRegions)</l>
-<l>select_shape(ConnectedRegions, SelectedRegions, 'area', 'and', 150000,9999999999999)</l>
-<l>area_center(SelectedRegions, Areas, Rows, Cols)</l>
-<c></c>
-<c>* 生成轮廓</c>
-<l>gen_contour_region_xld(SelectedRegions, RegionContour, 'border')</l>
-<c></c>
-<c>* 计算周长，Perimeter是输出变量</c>
-<l>length_xld(RegionContour, Perimeter)</l>
-<c>* 计算差值</c>
-<l>Diff := abs(Perimeter - 3000)</l>
-<c></c>
-<c>* 判定缺陷</c>
-<l>if (Diff &lt; 100)</l>
-<l>    IsOK := 0</l>
-<l>else</l>
-<l>    IsOK := 1</l>
-<l>endif</l>
-<c></c>
-<l>return ()</l>
 </body>
 <docu id="Defect">
 <parameters>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>ImagePath1 := 'E:/Detect_datasets/NR数据集/0818/cm5_16_150 (2).bmp'</l>
+<c></c>
+<c>* 读取图像</c>
+<l>read_image(Image1, ImagePath1)</l>
+<c></c>
+<c>* 获取图像尺寸</c>
+<l>get_image_size (Image1, Width, Height)</l>
+<c></c>
+<c>* 转换为灰度图像</c>
+<l>rgb1_to_gray(Image1, GrayImage1)</l>
+<c></c>
+<c>* 分解RGB通道</c>
+<l>decompose3(Image1, R1, G1, B1)</l>
+<c></c>
+<l>threshold(R1, RegionThreshold,120,255)</l>
+<c></c>
+<l>fill_up(RegionThreshold, SilverFilled)</l>
+<c>* 获取所有连通区域</c>
+<l>connection(SilverFilled, ConnectedRegions)</l>
+<c></c>
+<c>* 选择面积最大的区域</c>
+<l>select_shape(ConnectedRegions, LargestRegion, 'area', 'and', 100000, 99999999)</l>
+<l>select_obj(LargestRegion, MaxRegion, 1)</l>
+<c></c>
+<c>* 用最大区域作为掩模提取 ROI 图像</c>
+<l>reduce_domain(Image1, MaxRegion, SilverROIImage)</l>
+<c></c>
+<c>* 计算 ROI 区域面积</c>
+<l>area_center(MaxRegion, Area, Row, Column)</l>
+<c>* 判断面积是否在允许范围内</c>
+<l>Deviation := abs(Area - 270000)</l>
+<c></c>
+<l>IsOK := 1   </l>
+<c></c>
+<l>if (Deviation &lt; 10000)</l>
+<l>    IsOK := 0   </l>
+<l>endif</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOK" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOK"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

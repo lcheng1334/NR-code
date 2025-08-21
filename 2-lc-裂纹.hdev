@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* 设置图像路径并读取图像</c>
+<l>ImagePath := 'E:/Detect_datasets/NR数据集/CM_New_3015-3 D043/Cam1/不良_正面暗缺陷(NG1)_17590609.bmp'</l>
+<c></c>
+<c>* 读取图像</c>
+<l>read_image(demo_Image, ImagePath)</l>
+<c></c>
+<c>* 获取图像尺寸</c>
+<l>get_image_size(demo_Image, Width, Height)</l>
+<c></c>
+<c>******</c>
+<c></c>
+<c></c>
+<c>* 将图像转换为灰度图</c>
+<l>rgb1_to_gray(demo_Image, GrayImage)</l>
+<c></c>
+<c>* 对灰度图进行高斯平滑处理</c>
+<l>smooth_image(GrayImage, SmoothedImage, 'gauss', 6)</l>
+<c></c>
+<c>******</c>
+<c></c>
+<c>* 提取边缘（用于可视化）</c>
+<l>edges_sub_pix(GrayImage, Edges, 'canny', 5, 20, 40)</l>
+<c></c>
+<c>* 显示灰度图与边缘图</c>
+<l>dev_display(GrayImage)</l>
+<l>dev_display(Edges)</l>
+<c></c>
+<c></c>
+<c>******</c>
+<c></c>
+<c>* 阈值处理提取目标区域</c>
+<l>threshold(SmoothedImage, Region, 140, 180)</l>
+<c></c>
+<c>* 填充区域内部空洞</c>
+<l>fill_up(Region, RegionFillUp)</l>
+<c></c>
+<c>* 连接相邻区域</c>
+<l>connection(RegionFillUp, ConnectedRegions)</l>
+<c></c>
+<c>* 计算连接区域的面积与中心点</c>
+<l>area_center(ConnectedRegions, Area, Row, Column)</l>
+<c></c>
+<c>* 筛选出面积足够大的目标区域</c>
+<l>select_shape(ConnectedRegions, TargetRegions, 'area', 'and', 0, 400000)</l>
+<c></c>
+<c>* 再次计算目标区域的面积与中心</c>
+<l>area_center(TargetRegions, Area1, Row, Column)</l>
+<c></c>
+<c>* 显示原图与目标区域</c>
+<l>dev_display(demo_Image)</l>
+<l>dev_display(TargetRegions)</l>
+<c></c>
+<c>* 将图像限制在目标区域范围内</c>
+<l>reduce_domain(demo_Image, TargetRegions, ImageROI)</l>
+<c></c>
+<c>* 转换目标ROI为灰度图</c>
+<l>rgb1_to_gray(ImageROI, GrayImageROI)</l>
+<c></c>
+<c></c>
+<c></c>
+<c>******</c>
+<c></c>
+<c></c>
+<c>* 分解RGB三个通道</c>
+<l>decompose3(ImageROI, r, g, b)</l>
+<c></c>
+<c>* 将绿色通道转换为频域图像（傅里叶变换）</c>
+<l>rft_generic(g, ImageFFT, 'to_freq', 'none', 'complex', Width)</l>
+<c></c>
+<c>* 生成频域下的高斯滤波器</c>
+<l>gen_gauss_filter(ImageGauss, 10, 10, 0, 'n', 'rft', Width, Height)</l>
+<c></c>
+<c>* 在频域中进行卷积运算（滤波）</c>
+<l>convol_fft(ImageFFT, ImageGauss, ImageConvol)</l>
+<c></c>
+<c>* 将卷积结果转换回时域图像</c>
+<l>rft_generic(ImageConvol, ImageFFT1, 'from_freq', 'none', 'byte', Width)</l>
+<c></c>
+<c>* 图像差分：原图减去背景图，突出缺陷</c>
+<l>sub_image(g, ImageFFT1, ImageSub, 2, 140)</l>
+<c></c>
+<c>* 对差分图像做轻度高斯滤波</c>
+<l>smooth_image(ImageSub, SmoothImageROI, 'gauss', 1)</l>
+<c></c>
+<c>* 中值滤波降噪，去除随机干扰</c>
+<l>median_image(g, ImageMedian, 'circle', 3, 'mirrored')</l>
+<c></c>
+<c>* 图像增强处理</c>
+<l>emphasize(ImageMedian, EnhancedImage, 10, 10, 1)</l>
+<c></c>
+<c>* 灰度线性拉伸以增强裂纹特征</c>
+<l>scale_image(EnhancedImage, ScaledImage, 2, -40)</l>
+<c></c>
+<c>* 再次平滑处理（去除轻微伪影）</c>
+<l>mean_image(ScaledImage, SmoothImage, 5, 5)</l>
+<c></c>
+<c>* 计算高斯边缘检测参数</c>
+<l>calculate_lines_gauss_parameters(6, 60, Sigma, Low, High)</l>
+<c></c>
+<c>* 基于高斯线模型提取细线结构</c>
+<l>lines_gauss(SmoothImage, Lines, Sigma, Low, High, 'dark', 'true', 'gaussian', 'true')</l>
+<c></c>
+<c>* 合并相邻的轮廓线</c>
+<l>union_adjacent_contours_xld(Lines, LongContours1, 10, 1, 'attr_keep')</l>
+<c></c>
+<c>* 显示原图和合并后的长线</c>
+<l>dev_display(demo_Image)</l>
+<l>dev_display(LongContours1)</l>
+<c></c>
+<c>* 第一步筛选：提取长度大于2的轮廓线</c>
+<l>select_shape_xld(LongContours1, LongContours2, 'contlength', 'and', 2, 100000)</l>
+<c></c>
+<c>* 显示筛选结果</c>
+<l>dev_display(demo_Image)</l>
+<l>dev_set_line_width(2)</l>
+<l>dev_set_color('red')</l>
+<l>dev_display(LongContours2)</l>
+<c></c>
+<c>* 第二步筛选：提取“细长”的轮廓线（anisometry表示长宽比）</c>
+<l>select_shape_xld(LongContours2, LongContours3, 'anisometry', 'and', 1, 6)</l>
+<c></c>
+<c>* 显示最终检测结果</c>
+<l>dev_display(LongContours3)</l>
+<l>dev_set_line_width(1)</l>
+<l>dev_set_color('red')</l>
+<l>dev_display(LongContours3)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

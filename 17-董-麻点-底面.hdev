@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="24.11.1.0">
+<procedure name="main">
+<interface/>
+<body>
+<l>ImagePath := 'E:/Detect_datasets/NR数据集/CM_New_3015-3 D043/Cam2/不良_暗缺陷(NG2)_18135131.bmp'</l>
+<c></c>
+<l>read_image (Image, ImagePath)</l>
+<c></c>
+<c>* 转换为灰度图像 - 如果原图是彩色图像，需要转换为灰度以便后续处理</c>
+<l>rgb1_to_gray (Image, GrayImage)</l>
+<c></c>
+<l>threshold (GrayImage, Region, 0, 35)</l>
+<c></c>
+<l>* erosion_circle (Region, RegionErosion, 55)</l>
+<l>closing_circle (Region, RegionClosing, 4)</l>
+<c></c>
+<l>connection (RegionClosing, ConnectedRegions)</l>
+<c></c>
+<l>area_center (ConnectedRegions, Area, Row, Column)</l>
+<c></c>
+<l>select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 10000, 200000)</l>
+<c></c>
+<l>dilation_circle (SelectedRegions, RegionDilation, 4)</l>
+<c></c>
+<c>********** difference</c>
+<c></c>
+<l>threshold (GrayImage, Region1, 0, 60)</l>
+<c></c>
+<l>closing_circle (Region1, RegionClosing1, 4)</l>
+<c></c>
+<l>connection (RegionClosing1, ConnectedRegions1)</l>
+<c></c>
+<l>area_center (ConnectedRegions1, Area1, Row, Column)</l>
+<c></c>
+<l>select_shape (ConnectedRegions1, SelectedRegions1, 'area', 'and', 300000, 999999)</l>
+<c></c>
+<l>erosion_circle (SelectedRegions1, RegionErosion, 9)</l>
+<c></c>
+<l>reduce_domain (Image, RegionErosion, ImageReduced1)</l>
+<c></c>
+<c></c>
+<c></c>
+<c></c>
+<l>difference (SelectedRegions1, RegionDilation, RegionDifference)</l>
+<c></c>
+<l>reduce_domain (ImageReduced1, RegionDifference, ImageReduced2)</l>
+<c></c>
+<c></c>
+<c></c>
+<l>decompose3 (ImageReduced2, R, G, B)</l>
+<l>gauss_image (B, ImageGauss,3)</l>
+<l>threshold (B, Region2, 0, 90)</l>
+<c></c>
+<l>dev_display (Image)</l>
+<l>dev_display (Region2)</l>
+<c></c>
+<c></c>
+<l>closing_circle (Region2, RegionClosing2, 3)</l>
+<l>connection (Region2, ConnectedRegions2)</l>
+<l>area_center (ConnectedRegions2, Area2, Row, Column)</l>
+<l>select_shape (ConnectedRegions2, SelectedRegions2, 'area', 'and', 500, 999999)</l>
+<c>  </c>
+<l>dev_display (Image)</l>
+<l>dev_display (SelectedRegions2)</l>
+<c></c>
+<c></c>
+<c>* 如果最终缺陷区域的面积大于880（即存在缺陷），则将IsOk设为1（判定为不合格）</c>
+<l>* if (TotalSum &gt; 800)</l>
+<l>*     IsOk := 1</l>
+<l>* endif</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="zangwu">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="zangwu">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="Defect">
+<interface>
+<oo>
+<par name="Image" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="IsOk" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c></c>
+</body>
+<docu id="Defect">
+<parameters>
+<parameter id="Image"/>
+<parameter id="IsOk"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>
